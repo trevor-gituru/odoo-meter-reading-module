@@ -39,7 +39,7 @@ jobs:
       PGPORT: 5432
       PGUSER: postgres
       PGPASSWORD: postgres
-      ODOO_HOME: ${{ github.workspace }}/../odoo-src  # clone OUTSIDE the checked-out module repo
+      ODOO_HOME: ${{ runner.temp }}/odoo-src  # absolute path, sibling to the checkout, no ".." needed
 
     steps:
       - name: Checkout module
