@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class AccountMoveLine(models.Model):
@@ -25,5 +25,26 @@ class AccountMoveLine(models.Model):
 
     actual_reading = fields.Float(
         string="Actual",
+        compute="_compute_actual_reading",
+        store=True,
+        readonly=True,
         help="Difference between the current and previous meter readings.",
     )
+
+    @api.depends("previous_reading", "new_reading")
+    def _compute_actual_reading(self):
+        """
+        Compute the actual meter consumption and synchronize the invoice quantity.
+
+        Actual consumption is calculated as:
+
+            Actual = New Reading - Previous Reading
+
+        The computed consumption is also assigned to the invoice quantity
+        to ensure the billed quantity matches the customer's meter usage.
+        """
+        for line in self:
+            actual = line.new_reading - line.previous_reading
+
+            line.actual_reading = actual
+            line.quantity = actual
