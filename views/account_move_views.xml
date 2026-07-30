@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!--
+        Extend the customer invoice form by adding meter reading
+        fields to invoice lines.
+    -->
+    <record id="view_move_form_meter_invoice" model="ir.ui.view">
+        <field name="name">account.move.form.meter.invoice</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Add meter reading fields before Quantity -->
+            <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='quantity']"
+                   position="before">
+
+                <field name="previous_reading"/>
+                <field name="new_reading"/>
+                <field name="actual_reading"/>
+
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>
