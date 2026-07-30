@@ -133,6 +133,7 @@ jobs:
             --db_user="$PGUSER" \
             --db_password="$PGPASSWORD" \
             --addons-path=addons,custom_addons \
+            --test-tags=/meter_invoice \
             -d meter_invoice_test \
             -i meter_invoice \
             --without-demo=all \
