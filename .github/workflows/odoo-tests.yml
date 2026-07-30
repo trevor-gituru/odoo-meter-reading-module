@@ -37,8 +37,8 @@ jobs:
     env:
       PGHOST: localhost
       PGPORT: 5432
-      PGUSER: postgres
-      PGPASSWORD: postgres
+      PGUSER: odoo
+      PGPASSWORD: odoo
       ODOO_HOME: ${{ github.workspace }}/odoo-src  # inside the workspace so setup-python's dependency-path glob can see requirements.txt
 
     steps:
@@ -61,6 +61,24 @@ jobs:
             libffi-dev \
             libssl-dev \
             zlib1g-dev
+
+      - name: Create Odoo database user
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h "$PGHOST" -U postgres <<'SQL'
+          DO $$
+          BEGIN
+              IF NOT EXISTS (
+                  SELECT FROM pg_roles WHERE rolname = 'odoo'
+              ) THEN
+                  CREATE ROLE odoo LOGIN PASSWORD 'odoo';
+                  ALTER ROLE odoo CREATEDB;
+              END IF;
+          END
+          $$;
+          SQL
+
 
       - name: Cache Odoo 18 source
         id: cache-odoo
