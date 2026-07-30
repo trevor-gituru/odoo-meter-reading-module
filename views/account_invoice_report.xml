@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!--
+        Extend the customer invoice PDF report by displaying
+        meter reading information for each invoice line.
+    -->
+    <template id="report_invoice_document_meter_invoice"
+              inherit_id="account.report_invoice_document">
+
+        <!-- Add table headers -->
+        <xpath expr="//table[hasclass('o_main_table')]/thead/tr/th[@name='th_quantity']"
+               position="before">
+            <th name="th_previous" class="text-end">
+                Previous
+            </th>
+            <th name="th_new" class="text-end">
+                New
+            </th>
+            <th name="th_actual" class="text-end">
+                Actual
+            </th>
+        </xpath>
+
+        <!-- Add values for each invoice line -->
+        <xpath expr="//table[hasclass('o_main_table')]/tbody//td[@name='td_quantity']"
+               position="before">
+            <td name="td_previous" class="text-end">
+                <span t-field="line.previous_reading"/>
+            </td>
+
+            <td name="td_new" class="text-end">
+                <span t-field="line.new_reading"/>
+            </td>
+
+            <td name="td_actual" class="text-end">
+                <span t-field="line.actual_reading"/>
+            </td>
+        </xpath>
+
+    </template>
+</odoo>
