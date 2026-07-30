@@ -39,7 +39,7 @@ jobs:
       PGPORT: 5432
       PGUSER: postgres
       PGPASSWORD: postgres
-      ODOO_HOME: ${{ runner.temp }}/odoo-src  # absolute path, sibling to the checkout, no ".." needed
+      ODOO_HOME: /tmp/odoo-src  # fixed absolute path, outside the checkout, no context expression needed here
 
     steps:
       - name: Checkout module
