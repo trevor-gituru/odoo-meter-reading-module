@@ -39,7 +39,7 @@ jobs:
       PGPORT: 5432
       PGUSER: postgres
       PGPASSWORD: postgres
-      ODOO_HOME: /tmp/odoo-src  # fixed absolute path, outside the checkout, no context expression needed here
+      ODOO_HOME: ${{ github.workspace }}/odoo-src  # inside the workspace so setup-python's dependency-path glob can see requirements.txt
 
     steps:
       - name: Checkout module
@@ -71,12 +71,12 @@ jobs:
 
       - name: Clone Odoo 18
         if: steps.cache-odoo.outputs.cache-hit != 'true'
-        run: |
-          git clone \
-            --depth 1 \
-            --branch 18.0 \
-            https://github.com/odoo/odoo.git \
-            "$ODOO_HOME"
+        uses: actions/checkout@v4
+        with:
+          repository: odoo/odoo
+          ref: "18.0"
+          path: odoo-src
+          fetch-depth: 1
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -97,9 +97,7 @@ jobs:
       - name: Copy custom module
         run: |
           mkdir -p "$ODOO_HOME/custom_addons/meter_invoice"
-          # rsync, not cp -R: excludes .git/CI metadata and avoids ever
-          # touching $ODOO_HOME, since it now lives outside this checkout.
-          rsync -a --exclude='.git' --exclude='.github' \
+          rsync -a --exclude='.git' --exclude='.github' --exclude='odoo-src' \
             ./ "$ODOO_HOME/custom_addons/meter_invoice/"
 
       - name: Create database
