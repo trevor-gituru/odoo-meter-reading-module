@@ -136,7 +136,6 @@ jobs:
             --test-tags=/meter_invoice \
             -d meter_invoice_test \
             -i meter_invoice \
-            --without-demo=all \
             --test-enable \
             --stop-after-init \
             --log-level=test 2>&1 | tee odoo-test.log
