@@ -16,7 +16,8 @@ class AccountMoveLine(models.Model):
 
     previous_reading = fields.Float(
         string="Previous",
-        help="Previous meter reading from the customer's last posted invoice.",
+        readonly=True,
+        help="Previous meter reading retrieved from the customer's most recent posted invoice for the same product.",
     )
 
     new_reading = fields.Float(
@@ -48,3 +49,33 @@ class AccountMoveLine(models.Model):
 
             line.actual_reading = actual
             line.quantity = actual
+
+    @api.onchange("product_id", "move_id.partner_id")
+    def _onchange_previous_reading(self):
+        """
+        Populate the previous meter reading from the customer's most
+        recent posted invoice line for the selected product.
+
+        If no previous reading exists, the value defaults to 0.0.
+        """
+        for line in self:
+            line.previous_reading = 0.0
+
+            if not line.product_id or not line.move_id.partner_id:
+                continue
+
+            previous_line = self.env["account.move.line"].search(
+                [
+                    ("move_id", "!=", line.move_id.id),
+                    ("move_id.partner_id", "=", line.move_id.partner_id.id),
+                    ("move_id.move_type", "=", "out_invoice"),
+                    ("move_id.state", "=", "posted"),
+                    ("product_id", "=", line.product_id.id),
+                    ("id", "!=", line.id),
+                ],
+                order="id desc",
+                limit=1,
+            )
+
+            if previous_line:
+                line.previous_reading = previous_line.new_reading
