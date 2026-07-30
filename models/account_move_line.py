@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from odoo import api, fields, models
+from odoo import api, fields, models, _
+from odoo.exceptions import ValidationError
 
 
 class AccountMoveLine(models.Model):
@@ -85,3 +86,35 @@ class AccountMoveLine(models.Model):
             )
             if previous_line:
                 line.previous_reading = previous_line.new_reading
+
+    @api.constrains("previous_reading", "new_reading")
+    def _check_new_reading_not_less_than_previous(self):
+        """
+        Ensure the new meter reading is never lower than the previous one,
+        since meters only count up.
+
+        This is a hard, save-time safeguard: previous_reading is populated
+        automatically and normally can't be wrong, but new_reading is a
+        regular editable field, so a user could still type an invalid
+        value by hand. The onchange-based UI doesn't prevent that (Odoo
+        onchange checks are advisory, not enforced), so this constraint is
+        what actually blocks it from being saved.
+        """
+        for line in self:
+            # Skip lines that aren't using this feature at all (e.g. a
+            # plain vendor bill line where both fields sit at their
+            # default of 0.0).
+            if not line.new_reading and not line.previous_reading:
+                continue
+            if line.new_reading < line.previous_reading:
+                raise ValidationError(
+                    _(
+                        "The New Reading (%(new)s) cannot be lower than the "
+                        "Previous Reading (%(previous)s) on line for %(product)s."
+                    )
+                    % {
+                        "new": line.new_reading,
+                        "previous": line.previous_reading,
+                        "product": line.product_id.display_name or _("(no product)"),
+                    }
+                )

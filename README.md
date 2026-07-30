@@ -11,6 +11,7 @@ This module was developed as part of an Odoo Developer take-home assignment.
 * Adds **Previous**, **New**, and **Actual** meter reading columns to customer invoice lines.
 * Automatically retrieves the **Previous** meter reading from the customer's most recent posted invoice containing the same product.
 * Allows users to enter the current month's **New** meter reading.
+* Validates that the **New** meter reading cannot be less than the **Previous** meter reading.
 * Automatically computes **Actual = New − Previous**.
 * Automatically synchronizes the invoice **Quantity** with the calculated consumption.
 * Prevents manual editing of calculated fields to ensure data consistency.
@@ -90,7 +91,7 @@ Example successful output:
 ## Design Decisions
 
 * **Previous Reading** is read-only and automatically populated from invoice history.
-* **New Reading** is entered by the user and stored with the invoice.
+* **New Reading** is entered by the user, stored with the invoice, and must be greater than or equal to the **Previous Reading**.
 * **Actual Reading** is computed as:
 
 ```text
