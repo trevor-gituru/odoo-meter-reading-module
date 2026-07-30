@@ -17,6 +17,7 @@ quantity, and displays the readings on invoice views and reports.
     # Data files loaded during installation
     "data": [
         "views/account_move_views.xml",
+        "views/account_invoice_report.xml"
     ],
     # Demo data
     "demo": [],
