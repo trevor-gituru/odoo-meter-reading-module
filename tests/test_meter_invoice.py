@@ -6,6 +6,7 @@ These tests verify the custom business logic added to invoice lines,
 including meter consumption calculation, quantity synchronization,
 and retrieval of previous meter readings.
 """
+
 from odoo.exceptions import ValidationError
 from odoo.tests import Form
 from odoo.tests.common import TransactionCase
