@@ -15,9 +15,7 @@ quantity, and displays the readings on invoice views and reports.
     # Required module
     "depends": ["account"],
     # Data files loaded during installation
-    "data": [
-        "views/account_move_views.xml",
-    ],
+    "data": ["views/account_move_views.xml", "views/account_invoice_report.xml"],
     # Demo data
     "demo": [],
     "installable": True,

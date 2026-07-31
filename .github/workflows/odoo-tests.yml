@@ -1,0 +1,157 @@
+name: Odoo Tests
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:  # allow manual runs from the Actions tab
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true  # skip stale runs when new commits land on the same branch/PR
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20  # guard against a hung Odoo process eating the whole job budget
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: odoo
+      PGPASSWORD: odoo
+      ODOO_HOME: ${{ github.workspace }}/odoo-src  # inside the workspace so setup-python's dependency-path glob can see requirements.txt
+
+    steps:
+      - name: Checkout module
+        uses: actions/checkout@v4
+
+      - name: Install Ubuntu packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git \
+            postgresql-client \
+            build-essential \
+            libpq-dev \
+            libxml2-dev \
+            libxslt1-dev \
+            libldap2-dev \
+            libsasl2-dev \
+            libjpeg-dev \
+            libffi-dev \
+            libssl-dev \
+            zlib1g-dev
+
+      - name: Create Odoo database user
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h "$PGHOST" -U postgres <<'SQL'
+          DO $$
+          BEGIN
+              IF NOT EXISTS (
+                  SELECT FROM pg_roles WHERE rolname = 'odoo'
+              ) THEN
+                  CREATE ROLE odoo LOGIN PASSWORD 'odoo';
+                  ALTER ROLE odoo CREATEDB;
+              END IF;
+          END
+          $$;
+          SQL
+
+
+      - name: Cache Odoo 18 source
+        id: cache-odoo
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ODOO_HOME }}
+          key: odoo-18.0-src-${{ runner.os }}
+
+      - name: Clone Odoo 18
+        if: steps.cache-odoo.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: odoo/odoo
+          ref: "18.0"
+          path: odoo-src
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: "${{ env.ODOO_HOME }}/requirements.txt"
+
+      - name: Install Python dependencies
+        working-directory: ${{ env.ODOO_HOME }}
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install wheel
+          pip install -r requirements.txt
+
+      - name: Copy custom module
+        run: |
+          mkdir -p "$ODOO_HOME/custom_addons/meter_invoice"
+          rsync -a --exclude='.git' --exclude='.github' --exclude='odoo-src' \
+            ./ "$ODOO_HOME/custom_addons/meter_invoice/"
+
+      - name: Create database
+        run: |
+          createdb -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" meter_invoice_test
+
+      - name: Run module tests
+        working-directory: ${{ env.ODOO_HOME }}
+        run: |
+          source venv/bin/activate
+          set -o pipefail
+          python3 odoo-bin \
+            --db_host="$PGHOST" \
+            --db_port="$PGPORT" \
+            --db_user="$PGUSER" \
+            --db_password="$PGPASSWORD" \
+            --addons-path=addons,custom_addons \
+            --test-tags=/meter_invoice \
+            -d meter_invoice_test \
+            -i meter_invoice \
+            --test-enable \
+            --stop-after-init \
+            --log-level=test 2>&1 | tee odoo-test.log
+          # Explicit safety net: some Odoo versions don't reliably set a
+          # non-zero exit code on test failure with --stop-after-init, so
+          # fail the job explicitly if the log reports any failures.
+          if grep -qE "ERROR .* (FAIL:|At least one test failed)" odoo-test.log; then
+            echo "::error::One or more Odoo tests failed. See log above."
+            exit 1
+          fi
+
+      - name: Upload test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: odoo-test-log
+          path: ${{ env.ODOO_HOME }}/odoo-test.log
+          retention-days: 7

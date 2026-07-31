@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-
     <!--
         Extend the customer invoice form by adding meter reading
         fields to invoice lines.
@@ -11,17 +10,48 @@
         <field name="inherit_id" ref="account.view_move_form"/>
         <field name="arch" type="xml">
 
-            <!-- Add meter reading fields before Quantity -->
+            <!--
+                Insert the meter reading columns (Previous, New, Actual)
+                immediately before the Quantity column in the invoice
+                lines list, so the readings and the billed quantity they
+                drive are visually grouped together.
+            -->
             <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='quantity']"
                    position="before">
-
                 <field name="previous_reading"/>
                 <field name="new_reading"/>
                 <field name="actual_reading"/>
+            </xpath>
 
+            <!--
+                Quantity is computed from Previous/New readings
+                (see account_move_line.py _compute_actual_reading).
+                Force it readonly here so users correct the readings
+                instead of overriding the billed quantity directly.
+            -->
+            <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='quantity']"
+                   position="attributes">
+                <attribute name="readonly">1</attribute>
+            </xpath>
+
+            <!--
+                previous_reading is populated automatically by
+                _onchange_previous_reading and shouldn't be hand-edited
+                by the user, so it's readonly like quantity above.
+
+                force_save="1" is also required here: Odoo excludes
+                readonly fields from the create()/write() values sent
+                to the server by default, even when an onchange has set
+                the value in the form. Without force_save, the reading
+                looked up from the customer's invoice history would
+                never actually be persisted when the invoice is saved.
+            -->
+            <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='previous_reading']"
+                   position="attributes">
+                <attribute name="readonly">1</attribute>
+                <attribute name="force_save">1</attribute>
             </xpath>
 
         </field>
     </record>
-
 </odoo>
