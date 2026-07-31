@@ -8,6 +8,9 @@ The module also extends the standard Odoo customer invoice PDF report by display
 
 This project was developed as part of an Odoo Developer take-home assignment.
 
+**Live demo:** [https://odoo-meter-reading-module-latest-test.onrender.com/](https://odoo-meter-reading-module-latest-test.onrender.com/)
+Deployed on Render as a Web Service running the `latest-test` image (see [Docker Image & Deployment](#docker-image--deployment) below). Running on Render's free tier — the instance may take up to a minute to wake up if it's been idle.
+
 ---
 
 ## Features
@@ -26,7 +29,8 @@ This project was developed as part of an Odoo Developer take-home assignment.
 - Prevents manual editing of calculated fields to ensure data consistency.
 - Extends the customer invoice PDF report to include meter readings.
 - Includes automated unit tests for the core business logic.
-- Includes GitHub Actions workflows for automated testing and linting.
+- Includes GitHub Actions workflows for automated testing, linting, and Docker image builds.
+- Packaged as a Docker image with a configurable entrypoint, deployable to any host that accepts environment variables.
 
 ---
 
@@ -37,11 +41,17 @@ meter_invoice/
 ├── .github/
 │   └── workflows/
 │       ├── lint.yml
-│       └── odoo-tests.yml
+│       ├── odoo-tests.yml
+│       └── docker-build-push.yml
 ├── controllers/
 ├── models/
 ├── tests/
 ├── views/
+├── docker/
+│   └── entrypoint.sh
+├── Dockerfile
+├── docker-compose.yml
+├── .env.example
 ├── __init__.py
 ├── __manifest__.py
 ├── README.md
@@ -55,6 +65,7 @@ meter_invoice/
 - Odoo 18
 - Python 3.12 (or compatible with your Odoo installation)
 - PostgreSQL
+- Docker & Docker Compose (only required for running the containerized image — see [Docker Image & Deployment](#docker-image--deployment))
 
 ---
 
@@ -137,7 +148,7 @@ xmllint --noout views/*.xml
 
 ## GitHub Actions
 
-This repository includes automated CI workflows.
+This repository includes automated CI/CD workflows for testing, linting, and Docker image builds.
 
 ### Odoo Tests
 
@@ -176,6 +187,52 @@ This helps ensure code quality before merging changes.
 
 ---
 
+## Docker Image & Deployment
+
+The module and a full Odoo 18 environment are packaged into a single Docker image, built and pushed automatically by the **Build and Push Docker Image** workflow (`.github/workflows/docker-build-push.yml`).
+
+### What the workflow does
+
+- Checks out the repository and builds the image from the root `Dockerfile`.
+- Logs in to and pushes to **GitHub Container Registry (GHCR)**.
+- Tags every build with:
+  - An immutable short commit SHA (e.g. `ghcr.io/trevor-gituru/odoo-meter-reading-module:1a2b3c4d5e6f`)
+  - A floating environment tag: `latest-prod` when built from `main`, `latest-test` for any other branch (e.g. `develop`)
+- Passes the branch being built as the `MODULE_BRANCH` build argument, so the image's Dockerfile clones the matching branch of this module into the image.
+
+Runs on:
+
+- Pushes to:
+  - `main`
+  - `develop`
+- Manual workflow dispatch
+
+### Live deployment
+
+The [live demo](https://odoo-meter-reading-module-latest-test.onrender.com/) runs on **Render** as a Web Service, pulling the `ghcr.io/trevor-gituru/odoo-meter-reading-module:latest-test` image directly — no build step happens on Render itself, it just runs the image the workflow already built and pushed.
+
+All runtime configuration is supplied via environment variables set in Render's dashboard, matching `.env.example` in this repo:
+
+| Variable | Description |
+|---|---|
+| `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` | PostgreSQL connection details |
+| `DB_NAME` | Name of an existing database Odoo should use |
+| `ADMIN_PASSWORD` | Odoo master password (database management, not user login) |
+| `AUTO_INIT` / `INIT_MODULES` | Used only for the initial module installation, then left unset |
+
+### Running the image locally
+
+```bash
+cp .env.example .env
+# edit .env with real values
+docker compose pull
+docker compose up
+```
+
+`docker-compose.yml` pulls the tagged image (`IMAGE_TAG` in `.env`, e.g. `latest-test`) rather than building locally, so it runs the exact same image as the live deployment.
+
+---
+
 ## Dependencies
 
 - `account`
@@ -196,6 +253,7 @@ Actual = New Reading − Previous Reading
 - Quantity always matches the calculated consumption.
 - Previous readings are retrieved using the latest posted invoice for the same customer and product.
 - Invoice reports are extended using QWeb template inheritance.
+- Runtime configuration (database connection, admin password, module init) is entirely environment-variable-driven, so the same Docker image runs unmodified across local, CI, and hosted environments.
 
 ---
 
