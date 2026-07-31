@@ -5,9 +5,10 @@ on:
     branches:
       - main
       - develop
-      - "feature/**"
-      - "fix/**"
   pull_request:
+    branches:
+      - main
+      - develop
   workflow_dispatch:  # allow manual runs from the Actions tab
 
 concurrency:
