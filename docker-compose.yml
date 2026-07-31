@@ -9,7 +9,12 @@ services:
       DB_PORT: ${DB_PORT:-5432}
       DB_USER: ${DB_USER:?DB_USER must be set}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
+      DB_NAME: ${DB_NAME:?DB_NAME must be set — the target database must already exist}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD must be set}
+      # Optional: set AUTO_INIT=true for exactly one run to install
+      # modules into DB_NAME, then back to false for normal boots.
+      AUTO_INIT: ${AUTO_INIT:-false}
+      INIT_MODULES: ${INIT_MODULES:-base,meter_invoice}
     # No volumes: the Odoo filestore (attachments, generated reports,
     # etc.) lives only inside the container's writable layer and is
     # lost whenever the container is removed or the image is rebuilt.
