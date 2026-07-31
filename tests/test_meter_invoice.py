@@ -74,7 +74,7 @@ class TestMeterInvoice(TransactionCase):
         cls.initial_move.action_post()
 
         cls.initial_line = cls.initial_move.invoice_line_ids.filtered(
-            lambda l: l.product_id == cls.product
+            lambda line: line.product_id == cls.product
         )
 
     def _create_draft_line(self, partner, product, new_reading):
@@ -98,7 +98,7 @@ class TestMeterInvoice(TransactionCase):
             line_form.product_id = product
             line_form.new_reading = new_reading
         move = move_form.save()
-        return move.invoice_line_ids.filtered(lambda l: l.product_id == product)
+        return move.invoice_line_ids.filtered(lambda line: line.product_id == product)
 
     def test_actual_reading_is_computed(self):
         """
@@ -149,7 +149,7 @@ class TestMeterInvoice(TransactionCase):
         new_move = move_form.save()
 
         new_line = new_move.invoice_line_ids.filtered(
-            lambda l: l.product_id == self.product
+            lambda line: line.product_id == self.product
         )
 
         self.assertEqual(
@@ -175,7 +175,7 @@ class TestMeterInvoice(TransactionCase):
         new_move = move_form.save()
 
         new_line = new_move.invoice_line_ids.filtered(
-            lambda l: l.product_id == self.other_product
+            lambda line: line.product_id == self.other_product
         )
 
         self.assertEqual(
