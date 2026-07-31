@@ -24,7 +24,7 @@ set -e
 : "${DB_PORT:?DB_PORT must be set}"
 : "${DB_USER:?DB_USER must be set}"
 : "${DB_PASSWORD:?DB_PASSWORD must be set}"
-: "${DB_NAME:?DB_NAME must be set — the Postgres role in use (e.g. Supabase's pooled role) does not have CREATEDB rights, so Odoo must be pointed at a database that already exists rather than creating one itself}"
+: "${DB_NAME:?DB_NAME must be set}"
 : "${ADMIN_PASSWORD:?ADMIN_PASSWORD must be set}"
 
 INIT_MODULES="${INIT_MODULES:-base,meter_invoice}"
